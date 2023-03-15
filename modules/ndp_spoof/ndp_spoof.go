@@ -202,6 +202,14 @@ func (mod *NDPSpoofer) getTargets(probe bool) map[string]net.HardwareAddr {
 		// do we have this ip mac address?
 		if hw, err := mod.Session.FindMAC(ip, probe); err == nil {
 			targets[ip.String()] = hw
+		} else if ip.IsLinkLocalUnicast() {
+			var mac_bytes = make([]byte, 6)
+			copy(mac_bytes, ip[8:11])
+			copy(mac_bytes[3:6], ip[13:16])
+			mac_bytes[0] ^= 2
+			mac := net.HardwareAddr(mac_bytes)
+			targets[ip.String()] = mac
+			mod.Debug("couldn't get MAC for ip=%s, guessing %s", ip, mac)
 		} else {
 			mod.Info("couldn't get MAC for ip=%s, put it into the neighbour table manually e.g. ping -6", ip)
 		}
